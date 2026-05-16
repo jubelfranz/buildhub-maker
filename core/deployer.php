@@ -2,7 +2,7 @@
 /**
  * DEPLOYER v30.1 - UNKORRUMPIERBAR & URL CLEAN FIX
  * Path: /buildhub-maker/core/deployer.php
- * Text Domain: buildhub-maker-pro
+ * Text Domain: buildhub-maker
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,7 +55,7 @@ if ( ! function_exists( 'bh_dispatch_final_v30' ) ) {
             FILE_APPEND
         );
         if (empty($token)) {
-            return ['code' => 401, 'data' => __("No GitHub Token found in Dataset.", "buildhub-maker-pro")];
+            return ['code' => 401, 'data' => __("No GitHub Token found in Dataset.", "buildhub-maker")];
         }
         $plugin_name = isset($dataset['PLUGIN_NAME']) ? $dataset['PLUGIN_NAME'] : basename($zip_path);
         $zip_name    = basename($zip_path);
@@ -113,12 +113,12 @@ if ( ! function_exists( 'bh_dispatch_final_v30' ) ) {
         // GitHub sendet bei Erfolg 204 (No Content)
         if ($code === 204 || $code === 201 || $code === 200) {
             // translators: %s is the GitHub event type name.
-        return ['code' => 200, 'data' => sprintf(__("GitHub Action (%s) triggered successfully!", "buildhub-maker-pro"), $event_type)];
+        return ['code' => 200, 'data' => sprintf(__("GitHub Action (%s) triggered successfully!", "buildhub-maker"), $event_type)];
         }
 
         // translators: %1$d is HTTP status code, %2$s is error message.
         /* translators: 1: HTTP status code, 2: error message */
-        $msg = sprintf( __( 'GitHub API Error %1$d: %2$s', 'buildhub-maker-pro' ), (int) $code, wp_strip_all_tags( $res ) );
+        $msg = sprintf( __( 'GitHub API Error %1$d: %2$s', 'buildhub-maker' ), (int) $code, wp_strip_all_tags( $res ) );
         return ['code' => $code, 'data' => $msg];
     }
 }

@@ -2,9 +2,9 @@
 /**
  * Plugin Name: BuildHub Maker
  * Description: Professional tool for plugin transformation with Frontend Workspace.
- * Version: 2.0.2
+ * Version: 2.0.5
  * Author: Franz Horvath
- * Text Domain: buildhub-maker-pro
+ * Text Domain: buildhub-maker
  * License:     GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -32,15 +32,9 @@ if ( defined('DOING_AJAX') && DOING_AJAX ) {
 }
 
 require_once BH_MAKER_PATH . 'core/transformer.php';
-
-require_once BH_MAKER_PATH . 'core/deployer.php';
-
 require_once BH_MAKER_PATH . 'inc/step-1-preparation.php';
 require_once BH_MAKER_PATH . 'inc/step-2-versioning.php';
 require_once BH_MAKER_PATH . 'inc/step-3-deployment.php';
-
-if (file_exists(BH_MAKER_PATH . 'inc/pcp-check.php')) require_once BH_MAKER_PATH . 'inc/pcp-check.php';
-
 
 if ( ! function_exists( 'bh_get_clean_projects' ) ) {
 function bh_get_clean_projects() {
@@ -154,18 +148,18 @@ add_action('admin_notices', function() {
     );
     echo '<div class="notice notice-warning"><p>';
     echo '<strong>BuildHub Maker:</strong> ';
-    esc_html_e('FREE and PRO versions are both active. Please deactivate one of them.', 'buildhub-maker-pro');
+    esc_html_e('FREE and PRO versions are both active. Please deactivate one of them.', 'buildhub-maker');
     echo ' <a href="' . esc_url($deactivate_url) . '" class="button button-small">';
-    esc_html_e('Deactivate PRO now', 'buildhub-maker-pro');
+    esc_html_e('Deactivate PRO now', 'buildhub-maker');
     echo '</a></p></div>';
 });
 
 add_action('admin_menu', function() {
     $icon_svg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZmlsbD0iI2EwYTljYyIgZD0iTTE3LjIxIDkuNDFsLTMuMzktMy4zOWMtLjY0LS42NC0xLjUtLjY0LTIuMTIgMGwtNS42NSA1LjY2Yy0uNjQuNjQtLjY0IDEuNSAwIDIuMTJsMy4zOSAzLjM5Yy42NC42NCAxLjUuNjQgMi4xMiAwbDUuNjYtNS42NWMuNjMtLjY0LjYzLTEuNS0uMDEtMi4xMnpNNC45MyAxOS4wMmwtLjQyLS40MmMtLjU5LS41OS0uNTktMS41NCAwLTIuMTNsMi4xMi0yLjEybC40Mi40MmMuNTkuNTkuNTkgMS41NCAwIDIuMTNsLTIuMTIgMi4xMnoiLz48L3N2Zz4=';
-    add_menu_page(__('BuildHub Maker', 'buildhub-maker-pro'), __('BuildHub Maker', 'buildhub-maker-pro'), 'manage_options', 'buildhub-maker-pro', function() {
+    add_menu_page(__('BuildHub Maker', 'buildhub-maker'), __('BuildHub Maker', 'buildhub-maker'), 'manage_options', 'buildhub-maker', function() {
         include BH_MAKER_PATH . 'admin/system-check.php';
     }, $icon_svg, 80);
-    add_submenu_page('buildhub-maker-pro', __('Configuration', 'buildhub-maker-pro'), __('Configuration', 'buildhub-maker-pro'), 'manage_options', 'buildhub-config', function() {
+    add_submenu_page('buildhub-maker', __('Configuration', 'buildhub-maker'), __('Configuration', 'buildhub-maker'), 'manage_options', 'buildhub-config', function() {
         echo '<div class="wrap" style="background:#fff; padding:20px;">';
         include BH_MAKER_PATH . 'admin/config-manager.php';
         echo '</div>';
@@ -187,7 +181,7 @@ add_action('wp_enqueue_scripts', function() {
 });
 
 add_shortcode('buildhub_workspace', function() {
-    if ( ! current_user_can('manage_options') ) return __('Restricted Access.', 'buildhub-maker-pro');
+    if ( ! current_user_can('manage_options') ) return __('Restricted Access.', 'buildhub-maker');
     if ( is_admin() && ! defined('DOING_AJAX') ) return '<div style="padding:20px; border:2px dashed #ccc; text-align:center;">BuildHub Workspace Preview</div>';
     add_action('wp_footer', 'wm_inject_footer_scripts', 99);
     ob_start();
@@ -232,7 +226,8 @@ add_action('wp_ajax_bh_get_step_html', function() {
     check_ajax_referer('bh_maker_secure_nonce', 'security');
     $step = intval($_POST['step'] ?? 0);
     $html = '';
-    if ($step === 2) $html = do_shortcode('[bh-2-versioning]');
+    if ($step === 1) $html = do_shortcode('[bh-1-prep-v250]');
+    elseif ($step === 2) $html = do_shortcode('[bh-2-versioning]');
     elseif ($step === 3) $html = do_shortcode('[bh-3-deployment]');
     wp_send_json_success(['html' => $html]);
 });
@@ -247,8 +242,8 @@ add_action('wp_ajax_bh_get_readme_step', function() {
 
 add_action('wp_ajax_bh_fix_workspace_page', function() {
     check_ajax_referer('bh_maker_secure_nonce', 'security');
-    if (bh_ensure_workspace_page()) wp_send_json_success(__('Workspace page restored.', 'buildhub-maker-pro'));
-    else wp_send_json_error(__('Workspace page already exists.', 'buildhub-maker-pro'));
+    if (bh_ensure_workspace_page()) wp_send_json_success(__('Workspace page restored.', 'buildhub-maker'));
+    else wp_send_json_error(__('Workspace page already exists.', 'buildhub-maker'));
 });
 
 add_action('wp_ajax_bh_ajax_step_1_analyse_v268', function() {
@@ -320,219 +315,6 @@ add_action('wp_ajax_bh_ajax_step_2_build_v258', function() {
 });
 
 
-add_action('wp_ajax_wm_deploy_process', function() {
-    check_ajax_referer('bh_maker_secure_nonce', 'security');
-    $dataset = null;
-    $bh_project = sanitize_key(wp_unslash($_POST['bh_project'] ?? ''));
-    foreach (get_option('bh_projects_db', []) as $proj) {
-        if ($proj['PLUGIN_DOMAIN'] === $bh_project) { $dataset = $proj; break; }
-    }
-    if (!$dataset) wp_send_json_error(__('Dataset not found.', 'buildhub-maker-pro'));
-    $up = wp_upload_dir();
-    $deploy_file = sanitize_file_name(wp_unslash($_POST['deploy_file'] ?? ''));
-    $v = sanitize_text_field(wp_unslash($_POST['v'] ?? ''));
-    $target = sanitize_text_field(wp_unslash($_POST['target'] ?? ''));
-    $res = bh_dispatch_final_v30($up['basedir'] . '/buildhub_tmp/Builds/' . $deploy_file, $v, $dataset, $target === 'wporg' ? true : ($target === 'github_only' ? 'github_only' : false));
-    if ($res['code'] == 200) wp_send_json_success($res['data']); else wp_send_json_error($res['data']);
-});
-
-
-
-add_action('wp_ajax_bh_init_github_repo', function() {
-    check_ajax_referer('bh_maker_secure_nonce', 'security');
-    $dataset = null;
-    $bh_project = sanitize_key(wp_unslash($_POST['bh_project'] ?? ''));
-    foreach (get_option('bh_projects_db', []) as $proj) {
-        if ($proj['PLUGIN_DOMAIN'] === $bh_project) { $dataset = $proj; break; }
-    }
-    if (!$dataset) wp_send_json_error('Dataset not found.');
-
-    $up          = wp_upload_dir();
-    $deploy_file = sanitize_file_name(wp_unslash($_POST['deploy_file'] ?? ''));
-    $zip_path    = $up['basedir'] . '/buildhub_tmp/Builds/' . $deploy_file;
-    if (!file_exists($zip_path)) wp_send_json_error('ZIP not found: ' . $deploy_file);
-
-    $token    = trim($dataset['GH_TOKEN_VAL'] ?? '');
-    $repo     = trim($dataset['GH_REPO'] ?? '');
-    $version  = trim(bh_get_data('final_version') ?? '1.0.0');
-
-    if (empty($token)) wp_send_json_error('GitHub Token missing.');
-    if (empty($repo))  wp_send_json_error('GitHub Repo missing.');
-
-    // Debug Log
-    $init_log = WP_CONTENT_DIR . '/bh-init-debug.log';
-    file_put_contents($init_log, gmdate('H:i:s') . " | repo=$repo zip=$deploy_file zip_exists=" . (file_exists($zip_path)?'YES':'NO') . " zip_size=" . (file_exists($zip_path)?filesize($zip_path):0) . "\n", FILE_APPEND);
-
-    // Nur Workflow pushen — ZIP wird vom Workflow via zip_url heruntergeladen
-    $skip_zip_upload = true;
-    $has_free = !empty($dataset['HAS_FREE']);
-
-    // free-Branch anlegen falls HAS_FREE
-    if ($has_free) {
-        $free_check = wp_remote_get('https://api.github.com/repos/' . $repo . '/git/ref/heads/free', [
-            'headers' => $gh_headers
-        ]);
-        if (is_wp_error($free_check) || wp_remote_retrieve_response_code($free_check) === 404) {
-            $main_ref = wp_remote_get('https://api.github.com/repos/' . $repo . '/git/ref/heads/main', ['headers' => $gh_headers]);
-            if (!is_wp_error($main_ref) && wp_remote_retrieve_response_code($main_ref) === 200) {
-                $ref_data = json_decode(wp_remote_retrieve_body($main_ref), true);
-                $sha      = $ref_data['object']['sha'] ?? '';
-                if ($sha) {
-                    $r = wp_remote_post('https://api.github.com/repos/' . $repo . '/git/refs', [
-                        'headers' => $gh_headers,
-                        'body'    => wp_json_encode(['ref' => 'refs/heads/free', 'sha' => $sha]),
-                    ]);
-                    $results[] = 'Branch free: HTTP ' . wp_remote_retrieve_response_code($r);
-                }
-            }
-        } else {
-            $results[] = 'Branch free: already exists';
-        }
-    }
-
-    // Workflow-Datei Name aus Repo-Slug ableiten
-    $repo_slug    = basename($repo);
-    $workflow_file = 'deploy-freemius-' . $repo_slug . '.yml';
-    $workflow_path = BH_MAKER_PATH . 'inc/github-workflows/' . $workflow_file;
-
-    // Falls kein spezifischer Workflow vorhanden, generischen verwenden
-    if (!file_exists($workflow_path)) {
-        $workflow_path = BH_MAKER_PATH . 'inc/github-workflows/deploy-freemius-generic.yml';
-    }
-    if (!file_exists($workflow_path)) {
-        wp_send_json_error('Workflow template not found: ' . $workflow_file);
-    }
-
-    $gh_api  = 'https://api.github.com/repos/' . $repo . '/contents/';
-    $headers = [
-        'Authorization: token ' . $token,
-        'Accept: application/vnd.github.v3+json',
-        'User-Agent: BuildHub-Maker',
-        'Content-Type: application/json',
-    ];
-
-    $results = [];
-
-    // 1. ZIP in pro Branch pushen
-    $zip_content  = base64_encode(file_get_contents($zip_path));
-    $zip_filename = 'plugin-pro.zip';
-    $existing_sha = '';
-    $gh_headers   = [
-        'Authorization' => 'token ' . $token,
-        'Accept'        => 'application/vnd.github.v3+json',
-        'User-Agent'    => 'BuildHub-Maker',
-        'Content-Type'  => 'application/json',
-    ];
-
-    // Prüfe ob pro Branch existiert, sonst erstellen
-    $branch_check = wp_remote_get('https://api.github.com/repos/' . $repo . '/git/ref/heads/main', [
-        'headers' => $gh_headers
-    ]);
-    if (is_wp_error($branch_check) || wp_remote_retrieve_response_code($branch_check) === 404) {
-        // Branch existiert nicht — erstelle ihn von main/master
-        $default_ref = wp_remote_get('https://api.github.com/repos/' . $repo . '/git/ref/heads/main', ['headers' => $gh_headers]);
-        if (is_wp_error($default_ref) || wp_remote_retrieve_response_code($default_ref) === 404) {
-            $default_ref = wp_remote_get('https://api.github.com/repos/' . $repo . '/git/ref/heads/master', ['headers' => $gh_headers]);
-        }
-        if (!is_wp_error($default_ref) && wp_remote_retrieve_response_code($default_ref) === 200) {
-            $ref_data = json_decode(wp_remote_retrieve_body($default_ref), true);
-            $sha      = $ref_data['object']['sha'] ?? '';
-            if ($sha) {
-                wp_remote_post('https://api.github.com/repos/' . $repo . '/git/refs', [
-                    'headers' => $gh_headers,
-                    'body'    => wp_json_encode(['ref' => 'refs/heads/main', 'sha' => $sha]),
-                ]);
-                $results[] = 'Branch main created';
-            }
-        }
-    }
-
-    // Prüfe ob Datei bereits existiert
-    $check = wp_remote_get($gh_api . $zip_filename . '?ref=pro', ['headers' => $gh_headers]);
-    if (!is_wp_error($check) && wp_remote_retrieve_response_code($check) === 200) {
-        $check_data   = json_decode(wp_remote_retrieve_body($check), true);
-        $existing_sha = $check_data['sha'] ?? '';
-    }
-
-    $zip_body = ['message' => 'Update plugin-pro.zip v' . $version, 'content' => $zip_content, 'branch' => 'main'];
-    if ($existing_sha) $zip_body['sha'] = $existing_sha;
-
-    if (!$skip_zip_upload) $zip_response = wp_remote_request($gh_api . $zip_filename, [
-        'method'  => 'PUT',
-        'headers' => array_combine(
-            ['Authorization', 'Accept', 'User-Agent', 'Content-Type'],
-            ['token ' . $token, 'application/vnd.github.v3+json', 'BuildHub-Maker', 'application/json']
-        ),
-        'body' => wp_json_encode($zip_body),
-        'timeout' => 60,
-    ]);
-    $zip_code = $skip_zip_upload ? 201 : wp_remote_retrieve_response_code($zip_response);
-    if (!$skip_zip_upload) $results[] = 'ZIP push: HTTP ' . $zip_code;
-
-    // 2. Workflow-Datei in .github/workflows/ pushen
-    $wf_content  = base64_encode(file_get_contents($workflow_path));
-    $wf_path     = '.github/workflows/deploy-freemius.yml';
-
-    // push-to-github Workflow auch pushen wenn HAS_FREE
-    if ($has_free) {
-        $push_wf_template = BH_MAKER_PATH . 'inc/github-workflows/push-to-github.yml';
-        if (file_exists($push_wf_template)) {
-            $push_wf_content = base64_encode(file_get_contents($push_wf_template));
-            $push_wf_path    = '.github/workflows/push-to-github.yml';
-            $push_wf_sha     = '';
-            $push_check = wp_remote_get($gh_api . rawurlencode($push_wf_path) . '?ref=main', ['headers' => $gh_headers]);
-            if (!is_wp_error($push_check) && wp_remote_retrieve_response_code($push_check) === 200) {
-                $push_data   = json_decode(wp_remote_retrieve_body($push_check), true);
-                $push_wf_sha = $push_data['sha'] ?? '';
-            }
-            $push_body = ['message' => 'Add push-to-github workflow', 'content' => $push_wf_content, 'branch' => 'main'];
-            if ($push_wf_sha) $push_body['sha'] = $push_wf_sha;
-            $push_r    = wp_remote_request($gh_api . rawurlencode($push_wf_path), [
-                'method'  => 'PUT',
-                'headers' => $gh_headers,
-                'body'    => wp_json_encode($push_body),
-                'timeout' => 30,
-            ]);
-            $results[] = 'Push workflow: HTTP ' . wp_remote_retrieve_response_code($push_r);
-        }
-    }
-    $wf_sha      = '';
-
-    $wf_check = wp_remote_get($gh_api . rawurlencode($wf_path) . '?ref=main', [
-        'headers' => array_combine(
-            ['Authorization', 'Accept', 'User-Agent'],
-            ['token ' . $token, 'application/vnd.github.v3+json', 'BuildHub-Maker']
-        )
-    ]);
-    if (!is_wp_error($wf_check) && wp_remote_retrieve_response_code($wf_check) === 200) {
-        $wf_data = json_decode(wp_remote_retrieve_body($wf_check), true);
-        $wf_sha  = $wf_data['sha'] ?? '';
-    }
-
-    $wf_body = ['message' => 'Add Freemius deploy workflow', 'content' => $wf_content, 'branch' => 'main'];
-    if ($wf_sha) $wf_body['sha'] = $wf_sha;
-
-    $wf_response = wp_remote_request($gh_api . rawurlencode($wf_path), [
-        'method'  => 'PUT',
-        'headers' => array_combine(
-            ['Authorization', 'Accept', 'User-Agent', 'Content-Type'],
-            ['token ' . $token, 'application/vnd.github.v3+json', 'BuildHub-Maker', 'application/json']
-        ),
-        'body' => wp_json_encode($wf_body),
-        'timeout' => 30,
-    ]);
-    $wf_code = wp_remote_retrieve_response_code($wf_response);
-    $results[] = 'Workflow push: HTTP ' . $wf_code;
-
-    if ($zip_code >= 200 && $zip_code < 300 && $wf_code >= 200 && $wf_code < 300) {
-        file_put_contents($init_log, gmdate('H:i:s') . " | SUCCESS zip=$zip_code wf=$wf_code\n", FILE_APPEND);
-        wp_send_json_success(['message' => 'Repo initialized!', 'details' => $results]);
-    } else {
-        file_put_contents($init_log, gmdate('H:i:s') . " | FAILED zip=$zip_code wf=$wf_code results=" . implode(', ', $results) . "\n", FILE_APPEND);
-        wp_send_json_error(['message' => 'Init failed', 'details' => $results]);
-    }
-});
-
 
 
 add_action('wp_ajax_bh_save_dataset', function() {
@@ -587,8 +369,8 @@ add_action('wp_ajax_bh_toggle_debug', function() {
 
 add_action('wp_ajax_bh_smtp_test', function() {
     check_ajax_referer('bh_maker_secure_nonce', 'security');
-    $sent = wp_mail(get_option('admin_email'), __('BuildHub Connectivity', 'buildhub-maker-pro'), __('SMTP is working correctly.', 'buildhub-maker-pro'));
-    wp_send_json_success($sent ? __('Test email sent.', 'buildhub-maker-pro') : __('SMTP delivery failed.', 'buildhub-maker-pro'));
+    $sent = wp_mail(get_option('admin_email'), __('BuildHub Connectivity', 'buildhub-maker'), __('SMTP is working correctly.', 'buildhub-maker'));
+    wp_send_json_success($sent ? __('Test email sent.', 'buildhub-maker') : __('SMTP delivery failed.', 'buildhub-maker'));
 });
 
 add_action('wp_ajax_bh_export_projects', function() {
@@ -605,7 +387,7 @@ add_action('wp_ajax_bh_import_projects', function() {
     $data = json_decode(sanitize_text_field(wp_unslash($_POST['import_data'] ?? '')), true);
     if (is_array($data)) {
         update_option('bh_projects_db', array_values(array_filter($data)));
-        wp_send_json_success(__('Backup restored.', 'buildhub-maker-pro'));
+        wp_send_json_success(__('Backup restored.', 'buildhub-maker'));
     }
 });
 
@@ -653,15 +435,3 @@ function bh_handle_download() {
     exit;
 }
 }
-
-// Delete FREE version when PRO is activated
-function bh_pro_delete_free_buildhub_maker() {
-    if ( ! function_exists( 'deactivate_plugins' ) ) {
-        require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-    }
-    $free = 'buildhub-maker/buildhub-maker.php';
-    if ( is_plugin_active( $free ) ) deactivate_plugins( $free );
-    if ( function_exists( 'delete_plugins' ) ) delete_plugins( [ $free ] );
-}
-register_activation_hook( __FILE__, 'bh_pro_delete_free_buildhub_maker' );
