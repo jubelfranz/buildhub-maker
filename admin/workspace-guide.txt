@@ -1,0 +1,229 @@
+[STEP-IDLE]
+== 1. Local Preparation ==
+Welcome to the BuildHub Workspace. This is the starting point of your transformation journey.
+
+== How to start ==
+Select your master ZIP file on the left. This file should be your current development version containing the [PRO] logic tags.
+
+== Technical Analysis ==
+Once selected, BuildHub will perform a deep scan of the file headers. It identifies:
+- The current version number defined in the main PHP file.
+- The internal plugin slug based on the folder structure.
+- The integrity of the ZIP archive to ensure a stable transformation.
+
+This preparation stage ensures that all subsequent steps are based on accurate and verified metadata from your source code.
+[/STEP-IDLE]
+
+[STEP-ANALYZED]
+== 2. Versioning & Transformation ==
+The analysis of your master ZIP was successful! The system is now ready for the build process.
+
+== Your Configuration Options ==
+You can now define the "Target Version" for this specific build. If you leave it as is, the current version detected during analysis will be used.
+
+== The Transformation Engine ==
+When you click "Start Build", BuildHub performs a series of automated high-level tasks:
+- Header Injection: The engine overwrites the 'Author' and 'Author URI' in all PHP files with the values from your active dataset.
+- Stable Tag Synchronization: The 'Stable tag' in your readme.txt is automatically matched to your target version.
+- Tag Stripping: For the FREE version, every code block wrapped in [PRO] tags is physically removed from the files.
+- ZIP Packaging: The system creates three separate, clean archives: DEV, FREE, and PRO.
+
+This process ensures that your DEV, PRO and FREE versions are strictly separated and ready for distribution.
+[/STEP-ANALYZED]
+
+[STEP-FINISHED]
+== 3. Downloads & Deployment ==
+
+Congratulations! Your packages have been built successfully and are currently stored in the local temporary build directory on this server. You now have three distinct ZIP files at your disposal, each serving a specific purpose in your distribution workflow.
+
+== Understanding the Three Build Types ==
+
+-- DEV ZIP (orange) --
+The DEV ZIP is your personal working copy. It is essentially your original uploaded master file, enriched with a "DEV" suffix in both the Plugin Name header and the Text Domain. This makes it immediately recognizable in your WordPress plugin list as the development version, clearly distinguishable from the FREE and PRO variants.
+
+Purpose: Install this on your local development environment or staging server. It contains your complete codebase including all [PRO] logic tags in their raw, unprocessed form. This is the version you actively work on and modify before each new build cycle.
+
+Important: Never distribute the DEV version to end users or submit it to WordPress.org. It contains internal markers and untransformed code that is not intended for production use.
+
+-- FREE ZIP (green) --
+The FREE ZIP is your public, community version intended for distribution on WordPress.org. During the build, BuildHub performs the following transformations on this package:
+
+1. All code blocks wrapped between // [PRO] and // [/PRO] comment tags are completely removed from every PHP, JS, CSS, HTML and TXT file in the package.
+2. The Freemius SDK vendor folder is removed entirely, as it is not permitted on WordPress.org.
+3. Any .htaccess files are removed, as these are also not permitted on WordPress.org.
+4. The Plugin Name header receives no suffix — it shows as your clean plugin name.
+5. The Text Domain remains your base slug (e.g. "my-plugin").
+6. Author and Author URI are injected from your active dataset.
+
+This version is safe to submit to the WordPress.org plugin repository and will pass the official Plugin Check tool.
+
+-- PRO ZIP (blue) --
+The PRO ZIP is your premium version intended for sale and distribution via Freemius. During the build, BuildHub performs the following transformations on this package:
+
+1. The [PRO] and [/PRO] tag lines themselves are removed, but all code between them is preserved intact.
+2. The Plugin Name header receives the "PRO" suffix (e.g. "My Plugin PRO").
+3. The Text Domain is updated to your paid slug (e.g. "my-plugin-pro"), ensuring proper translation file loading.
+4. Author and Author URI are injected from your active dataset.
+5. An automatic activation hook is injected that deactivates and deletes the FREE version when the PRO version is activated — providing a seamless upgrade experience for your customers.
+
+== The Intended Workflow ==
+
+The BuildHub Maker is designed around a clean, repeatable four-step distribution cycle:
+
+Step 1 — Develop: Work on your DEV version locally. Use // [PRO] and // [/PRO] tags to wrap premium features. Keep your codebase in a single ZIP file.
+
+Step 2 — Build: Upload your DEV ZIP to BuildHub, set the target version number, and run the transformation. Three packages are created automatically.
+
+Step 3 — Verify: Download and inspect all three ZIPs before distributing. Install the DEV ZIP on your staging server. Check that PRO features are absent in the FREE version and present in the PRO version.
+
+Step 4 — Distribute: Use the Deployment buttons (PRO feature) to trigger your GitHub Actions workflows, or distribute the ZIPs manually.
+
+== Understanding the Deployment Buttons (PRO only) ==
+
+The two deployment buttons in the right column do not upload files directly to WordPress.org or Freemius. Instead, they trigger a GitHub Repository Dispatch event — a webhook mechanism that starts a pre-configured GitHub Actions workflow in your repository.
+
+-- Senden nach GitHub & WP.ORG (green) --
+Clicking this button sends a POST request to the GitHub API endpoint:
+https://api.github.com/repos/YOUR-USERNAME/YOUR-REPO/dispatches
+
+The request includes a JSON payload with:
+- event_type: "deploy_wporg"
+- version: your current build version
+- zip_name: the filename of the FREE ZIP
+- triggered_at: timestamp of the dispatch
+
+Your GitHub Actions YAML workflow receives this event and is responsible for:
+1. Downloading or accessing the FREE ZIP.
+2. Checking out your WordPress.org SVN repository.
+3. Copying the plugin files into the trunk or tags directory.
+4. Committing and pushing the changes to WordPress.org via SVN.
+
+This workflow must be set up by you in your GitHub repository. BuildHub only triggers the event — it does not manage your SVN credentials or SVN operations directly.
+
+-- Senden nach GitHub & FREEMIUS (blue) --
+Clicking this button sends a POST request to the same GitHub API endpoint, but with a different payload:
+- event_type: "deploy_freemius"
+- version: your current build version
+- zip_name: the filename of the PRO ZIP
+- plugin_id: your Freemius Product ID from the dataset
+
+Your GitHub Actions YAML workflow receives this event and is responsible for:
+1. Downloading or accessing the PRO ZIP.
+2. Authenticating with the Freemius REST API using your Bearer Token.
+3. Uploading the PRO ZIP as a new version to your Freemius product.
+4. Optionally tagging the release in your GitHub repository.
+
+Again, the YAML workflow must be maintained by you. BuildHub provides the trigger and the necessary metadata in the payload.
+
+== Prerequisites for Deployment ==
+
+Before using the deployment buttons, ensure the following are configured in your active dataset:
+- GitHub Repository: in the format "username/repository-name"
+- GitHub PAT: a Personal Access Token with "repo" scope
+- Freemius ID: your numeric Freemius Product ID
+- Freemius Bearer Token: your secret API token starting with "secret_"
+
+If any of these are missing or incorrect, the dispatch will fail with a GitHub API error. Enable Debug Mode at the bottom of the workspace to log the full request and response details to a log file on the server.
+
+== Manual Verification Recommended ==
+
+We strongly recommend downloading and manually inspecting all three ZIPs before triggering any deployment. Verify:
+- The FREE ZIP does not contain any PRO-only features or the Freemius SDK.
+- The PRO ZIP contains all premium features with the [PRO] tag lines removed.
+- Both ZIPs carry the correct version number in their main plugin headers.
+- The readme.txt Stable tag matches the build version.
+
+A few minutes of manual verification prevents hours of troubleshooting after a bad deployment.
+[/STEP-FINISHED]
+
+[STEP-CONFIG]
+== Project Manager: Field Guide ==
+
+Each dataset defines one plugin product. Here is exactly where to find every required value.
+
+-- Plugin Name --
+The human-readable title of your plugin, e.g. "My Awesome Plugin". Used for display only inside BuildHub.
+
+-- Slug (Free Version) --
+The technical folder name of your free/public version, e.g. "my-awesome-plugin". Must match exactly:
+- The folder name in your WordPress plugins directory.
+- The slug registered on wordpress.org (if applicable).
+- The slug in your Freemius dashboard under the FREE product.
+
+-- Paid Slug (Pro Version) --
+The folder name of your PRO version, e.g. "my-awesome-plugin-pro". Must match the slug in your Freemius PRO product settings.
+
+-- GitHub Repository --
+Format: username/repository-name (e.g. "your-github-username/my-awesome-plugin")
+Where to find: github.com -> Your repository -> the URL after github.com/
+
+-- GitHub PAT (Personal Access Token) --
+A secret key that allows BuildHub to trigger your GitHub Actions workflows.
+Where to create:
+1. github.com -> Profile picture (top right) -> Settings
+2. Left sidebar, scroll to bottom -> Developer settings
+3. Personal access tokens -> Tokens (classic)
+4. "Generate new token (classic)"
+5. Set a name, choose expiration, check the "repo" scope
+6. Click "Generate token" and copy immediately (shown only once!)
+The token starts with "ghp_..."
+
+-- Freemius ID --
+The numeric product ID of your plugin in Freemius.
+Where to find:
+1. freemius.com -> Login -> Dashboard
+2. Select your plugin/product
+3. Left sidebar -> Settings -> General
+4. The "Plugin ID" or "Product ID" field (a number like 12345)
+Alternatively visible in the URL: freemius.com/members/.../plugins/12345/...
+
+-- Freemius Bearer Token --
+The secret API token for authenticating with the Freemius API.
+Where to find:
+1. freemius.com -> Login -> Dashboard
+2. Select your plugin/product
+3. Left sidebar -> Settings -> General (or Developer tab)
+4. Look for "Secret Key" or "Bearer Token" — it starts with "secret_"
+Note: This is NOT the same as the public key (which starts with "pk_").
+The secret key is typically shown as: secret_live_xxxx... or secret_test_xxxx...
+
+-- Author Name & Author URI --
+These values are injected into your plugin's main PHP file header during the build, overwriting whatever is there locally:
+  * Author: Your Name
+  * Author URI: https://your-website.com
+This ensures your published plugins always carry the correct branding.
+
+-- Create FREE Version (checkbox) --
+When checked, BuildHub creates three ZIPs per build:
+- slug-dev-VERSION.zip (DEV): Original with DEV suffix. Your working copy.
+- slug-VERSION.zip (FREE): All [PRO]...[/PRO] code blocks removed, Freemius SDK removed, .htaccess removed.
+- slug-pro-VERSION.zip (PRO): [PRO] tag markers removed but code kept intact, PRO suffix added.
+When unchecked, only the DEV and PRO ZIPs are built.
+[/STEP-CONFIG]
+
+[STEP-DASHBOARD]
+== System Dashboard ==
+
+== Mission Control ==
+This area monitors the vital signs of your entire BuildHub infrastructure to ensure a smooth operation.
+
+== Infrastructure Health Check ==
+- Project Database: Confirms that all project datasets are correctly indexed and stored within the WordPress wp_options table.
+- Workspace Page Status: The frontend builder requires a specific page titled "BuildHub Workspace" containing the [buildhub_workspace] shortcode.
+
+== Automated Recovery ==
+If the system detects that the Workspace page is missing (e.g., after a manual deletion), a "Create Page" button will appear. Clicking this button will:
+1. Generate a new static page with the correct title.
+2. Inject the necessary shortcode automatically.
+3. Publish the page so the Frontend Workspace is immediately accessible again.
+
+== Data Portability & Safety ==
+Use the JSON tools to move your entire setup between staging and production.
+1. Export: Creates a portable backup of all your datasets.
+2. Import: Restores your datasets from a JSON string.
+
+Warning: The import process will overwrite your current database configuration. Always ensure you have a valid backup before proceeding.
+
+Note on Navigation & Menu Validity:
+In modern Theme Builders (e.g., Astra Pro Header Builder), menu items are often linked to specific Page IDs. If the Workspace page was previously deleted, it must be restored from the Trash via the recovery tool to maintain its original ID. Simply creating a new page with the same title may cause "Invalid" labels in your Menu/Header configuration because the underlying ID has changed. Always refresh your site builder after a recovery to ensure synchronization.
+[/STEP-DASHBOARD]

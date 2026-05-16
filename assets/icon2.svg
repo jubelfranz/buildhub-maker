@@ -1,0 +1,12 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://w3.org">
+    <!-- Kreis-Hintergrund für Kontrast (optional) -->
+    <path d="M10 1C4.477 1 0 5.477 0 11c0 5.523 4.477 10 10 10s10-4.477 10-10c0-5.523-4.477-10-10-10z" fill="#1a1a1a"/>
+    
+    <!-- Das Paket / Die Box -->
+    <path d="M6 7l4-2 4 2v5l-4 2-4-2V7z" stroke="#00d1b2" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M6 7l4 2 4-2M10 9v5" stroke="#00d1b2" stroke-width="1.2"/>
+    
+    <!-- Der Deployment-Pfeil (Hub) -->
+    <path d="M15 11.5c.828 0 1.5-.672 1.5-1.5 0-2.485-2.015-4.5-4.5-4.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M10.5 5.5l1.5-1.5 1.5 1.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
