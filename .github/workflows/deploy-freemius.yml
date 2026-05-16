@@ -46,6 +46,7 @@ jobs:
             $res  = curl_exec($ch);
             $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             echo "UPLOAD STATUS: " . $code . "\n";
+            echo "UPLOAD RESPONSE: " . $res . "\n";
             if ($code !== 201) { echo "Upload failed!\n"; exit(1); }
 
             $data   = json_decode($res, true);
