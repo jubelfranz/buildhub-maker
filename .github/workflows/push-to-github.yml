@@ -13,6 +13,7 @@ jobs:
         with:
           ref: free
           fetch-depth: 1
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Download FREE ZIP from BuildHub
         run: |
@@ -21,9 +22,12 @@ jobs:
           echo "ZIP size: $(wc -c < free.zip) bytes"
 
       - name: Extract and push to free branch
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.email "buildhub@action.local"
           git config user.name "BuildHub Maker"
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
           unzip -o free.zip -d extracted/
           rsync -av --delete extracted/*/ . --exclude='.git' --exclude='extracted'
           rm -rf extracted free.zip
