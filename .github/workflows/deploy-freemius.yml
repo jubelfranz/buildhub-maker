@@ -1,0 +1,117 @@
+name: Deploy to Freemius
+
+on:
+  repository_dispatch:
+    types: [deploy_to_freemius]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Download ZIP from BuildHub
+        run: |
+          echo "Downloading ${{ github.event.client_payload.zip_name }}..."
+          curl -L -o plugin-pro.zip "${{ github.event.client_payload.zip_url }}"
+          echo "ZIP size: $(wc -c < plugin-pro.zip) bytes"
+
+      - name: Deploy & Release to Freemius
+        env:
+          BEARER_TOKEN: ${{ secrets.FREEMIUS_BEARER_TOKEN }}
+          FINAL_VERSION: ${{ github.event.client_payload.version }}
+          PLUGIN_ID: ${{ github.event.client_payload.plugin_id }}
+        run: |
+          php -r '
+            $token     = getenv("BEARER_TOKEN");
+            $v         = getenv("FINAL_VERSION");
+            $plugin_id = getenv("PLUGIN_ID");
+
+            $url = "https://api.freemius.com/v1/products/" . $plugin_id . "/tags.json?add_as_new_version=true";
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+              CURLOPT_POST           => true,
+              CURLOPT_RETURNTRANSFER => true,
+              CURLOPT_SSL_VERIFYPEER => false,
+              CURLOPT_HTTPHEADER     => ["Authorization: Bearer " . $token, "Expect:"],
+              CURLOPT_POSTFIELDS     => [
+                "version" => $v,
+                "file"    => new CURLFile(realpath("plugin-pro.zip"))
+              ]
+            ]);
+            $res  = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            echo "UPLOAD STATUS: " . $code . "\n";
+            if ($code !== 201) { echo "Upload failed!\n"; exit(1); }
+
+            $data   = json_decode($res, true);
+            $tag_id = $data["id"] ?? null;
+            if (!$tag_id) { echo "No tag_id!\n"; exit(1); }
+
+            $release_url = "https://api.freemius.com/v1/products/" . $plugin_id . "/tags/" . $tag_id . ".json";
+            $ch2 = curl_init($release_url);
+            curl_setopt_array($ch2, [
+              CURLOPT_CUSTOMREQUEST  => "PUT",
+              CURLOPT_RETURNTRANSFER => true,
+              CURLOPT_SSL_VERIFYPEER => false,
+              CURLOPT_HTTPHEADER     => ["Authorization: Bearer " . $token, "Content-Type: application/json"],
+              CURLOPT_POSTFIELDS     => json_encode(["release_mode" => "released"])
+            ]);
+            $res2  = curl_exec($ch2);
+            $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            echo "RELEASE STATUS: " . $code2 . "\n";
+            echo "RELEASE RESPONSE: " . $res2 . "\n";
+            if ($code2 !== 200) { echo "Release failed!\n"; exit(1); }
+            echo "SUCCESS: v" . $v . " deployed and released!\n";
+          '
+
+      - name: Send confirmation email
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: host47.ssl-net.net
+          server_port: 587
+          secure: false
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "SUCCESS - ${{ github.event.client_payload.zip_name }} v${{ github.event.client_payload.version }} deployed to Freemius"
+          to: ${{ secrets.MAIL_USERNAME }}
+          from: BuildHub Maker <${{ secrets.MAIL_USERNAME }}>
+          body: |
+            Deployment successful!
+
+            Plugin : ${{ github.event.client_payload.zip_name }}
+            Version: ${{ github.event.client_payload.version }}
+            Target : Freemius
+            Time   : ${{ github.event.client_payload.triggered_at }}
+
+            ---
+            BuildHub Maker
+
+      - name: Send failure email
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: host47.ssl-net.net
+          server_port: 587
+          secure: false
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "FAILED - ${{ github.event.client_payload.zip_name }} v${{ github.event.client_payload.version }} Freemius deploy"
+          to: ${{ secrets.MAIL_USERNAME }}
+          from: BuildHub Maker <${{ secrets.MAIL_USERNAME }}>
+          body: |
+            Deployment FAILED!
+
+            Plugin : ${{ github.event.client_payload.zip_name }}
+            Version: ${{ github.event.client_payload.version }}
+            Time   : ${{ github.event.client_payload.triggered_at }}
+
+            Check log: https://github.com/${{ github.repository }}/actions
+
+            ---
+            BuildHub Maker
